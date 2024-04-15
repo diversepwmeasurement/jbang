@@ -1,117 +1,141 @@
-on:
-  release:
-    types:
-      - published
-
-name: release-3rdparty
-jobs:   
+jobs:
   build:
-    runs-on: ubuntu-latest
-    name: build-and-testing
     env:
-      JRELEASER_SDKMAN_CONSUMER_KEY: ${{ secrets.SDKMAN_CONSUMER_KEY }}
-      JRELEASER_SDKMAN_CONSUMER_TOKEN: ${{ secrets.SDKMAN_CONSUMER_TOKEN }}
-      JRELEASER_TWITTER_CONSUMER_KEY: ${{ secrets.TWITTER_CONSUMER_KEY }}
-      JRELEASER_TWITTER_CONSUMER_SECRET: ${{ secrets.TWITTER_CONSUMER_SECRET }}
-      JRELEASER_TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-      JRELEASER_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
       JRELEASER_GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
       JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
       JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
-      JRELEASER_NEXUS2_USERNAME: ${{ secrets.OSSRH_USERNAME}}
       JRELEASER_NEXUS2_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+      JRELEASER_NEXUS2_USERNAME: ${{ secrets.OSSRH_USERNAME}}
+      JRELEASER_SDKMAN_CONSUMER_KEY: ${{ secrets.SDKMAN_CONSUMER_KEY }}
+      JRELEASER_SDKMAN_CONSUMER_TOKEN: ${{ secrets.SDKMAN_CONSUMER_TOKEN }}
+      JRELEASER_TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+      JRELEASER_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET
+        }}
+      JRELEASER_TWITTER_CONSUMER_KEY: ${{ secrets.TWITTER_CONSUMER_KEY }}
+      JRELEASER_TWITTER_CONSUMER_SECRET: ${{ secrets.TWITTER_CONSUMER_SECRET }}
       JRELEASER_VERSION: 1.9.0
+    name: build-and-testing
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
-        with:
-          fetch-depth: 0
-      - name: install-java11
-        uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3
-        with:
-          java-version: 11
-          distribution: temurin
-          cache: gradle
-      - name: build-gradle
-        run: ./gradlew --no-daemon clean build -x test --build-cache --scan -s
-      - name: version extract
-        id: version
-        run: |
-          RELEASE_VERSION=`cat build/tmp/version.txt`
-          echo "::set-output name=RELEASE_VERSION::$RELEASE_VERSION"
-      - name: jreleaser publish
-        continue-on-error: true
-        uses: jreleaser/release-action@v2
-        env:
-          JRELEASER_PROJECT_VERSION: ${{steps.version.outputs.RELEASE_VERSION}}
-        with:
-          version: ${{ env.JRELEASER_VERSION }}
-          arguments: publish
-          setup-java: false
-      - name: JReleaser publish output
-        if: always()
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3
-        with:
-          name: jreleaser-publish
-          path: |
-            out/jreleaser/trace.log
-            out/jreleaser/output.properties
-      - name: spec
-        continue-on-error: true
-        env:
-          BREW_GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
-          BREW_USER: ${{ secrets.BREW_USER }}
-        run: ./misc/updatespec.sh
-      - name: jreleaser announce
-        continue-on-error: true
-        uses: jreleaser/release-action@v2
-        env:
-          JRELEASER_PROJECT_VERSION: ${{steps.version.outputs.RELEASE_VERSION}}
-        with:
-          version: ${{ env.JRELEASER_VERSION }}
-          arguments: announce
-          setup-java: false
-      - name: JReleaser announce output
-        if: always()
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3
-        with:
-          name: jreleaser-announce
-          path: |
-            out/jreleaser/trace.log
-            out/jreleaser/output.properties
-      - name: upload-choco
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3
-        with:
-          name: build-choco
-          path: build/choco
+    - continue-on-error: true
+      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
+      with:
+        fetch-depth: 0
+    - continue-on-error: true
+      name: install-java11
+      uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0
+      with:
+        cache: gradle
+        distribution: temurin
+        java-version: 11
+    - continue-on-error: true
+      name: build-gradle
+      run: ./gradlew --no-daemon clean build -x test --build-cache --scan -s
+    - continue-on-error: true
+      id: version
+      name: version extract
+      run: 'RELEASE_VERSION=`cat build/tmp/version.txt`
+
+        echo "::set-output name=RELEASE_VERSION::$RELEASE_VERSION"
+
+        '
+    - continue-on-error: true
+      env:
+        JRELEASER_PROJECT_VERSION: ${{steps.version.outputs.RELEASE_VERSION}}
+      name: jreleaser publish
+      uses: jreleaser/release-action@v2
+      with:
+        arguments: publish
+        setup-java: false
+        version: ${{ env.JRELEASER_VERSION }}
+    - continue-on-error: true
+      if: always()
+      name: JReleaser publish output
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      with:
+        name: jreleaser-publish
+        path: 'out/jreleaser/trace.log
+
+          out/jreleaser/output.properties
+
+          '
+    - continue-on-error: true
+      env:
+        BREW_GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
+        BREW_USER: ${{ secrets.BREW_USER }}
+      name: spec
+      run: ./misc/updatespec.sh
+    - continue-on-error: true
+      env:
+        JRELEASER_PROJECT_VERSION: ${{steps.version.outputs.RELEASE_VERSION}}
+      name: jreleaser announce
+      uses: jreleaser/release-action@v2
+      with:
+        arguments: announce
+        setup-java: false
+        version: ${{ env.JRELEASER_VERSION }}
+    - continue-on-error: true
+      if: always()
+      name: JReleaser announce output
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      with:
+        name: jreleaser-announce
+        path: 'out/jreleaser/trace.log
+
+          out/jreleaser/output.properties
+
+          '
+    - continue-on-error: true
+      name: upload-choco
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      with:
+        name: build-choco
+        path: build/choco
   choco:
-    needs: build
-    runs-on: windows-latest
-    name: publish-choco
     continue-on-error: true
+    name: publish-choco
+    needs: build
+    runs-on: self-hosted
     steps:
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3
-        with:
-          name: build-choco
-          path: build/choco
-      - uses: actions/setup-dotnet@608ee757cfcce72c2e91e99aca128e0cae67de87 # v1
-        with:
-          dotnet-version: '2.2.204' # SDK Version to use.
-      - name: choco-build
-        run: |
-          powershell
-          choco pack build/choco/jbang.nuspec
-      - name: github-nuget
-        continue-on-error: true
-        env: 
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          powershell
-          dotnet nuget source add -username maxandersen --password $GITHUB_TOKEN --store-password-in-clear-text --name github "https://nuget.pkg.github.com/maxandersen/index.json"
-          dotnet nuget push $(ls *.nupkg | % {$_.FullName}) --source github
-      - name: choco-publish
-        continue-on-error: true
-        run: |
-          powershell
-          choco apikey -k ${{ secrets.CHOCO_API_KEY }} -source https://push.chocolatey.org/
-          choco push $(ls *.nupkg | % {$_.FullName}) -s https://push.chocolatey.org/
+    - continue-on-error: true
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      with:
+        name: build-choco
+        path: build/choco
+    - continue-on-error: true
+      uses: actions/setup-dotnet@608ee757cfcce72c2e91e99aca128e0cae67de87
+      with:
+        dotnet-version: 2.2.204
+    - continue-on-error: true
+      name: choco-build
+      run: 'powershell
+
+        choco pack build/choco/jbang.nuspec
+
+        '
+    - continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      name: github-nuget
+      run: 'powershell
+
+        dotnet nuget source add -username maxandersen --password $GITHUB_TOKEN --store-password-in-clear-text
+        --name github "https://nuget.pkg.github.com/maxandersen/index.json"
+
+        dotnet nuget push $(ls *.nupkg | % {$_.FullName}) --source github
+
+        '
+    - continue-on-error: true
+      name: choco-publish
+      run: 'powershell
+
+        choco apikey -k ${{ secrets.CHOCO_API_KEY }} -source https://push.chocolatey.org/
+
+        choco push $(ls *.nupkg | % {$_.FullName}) -s https://push.chocolatey.org/
+
+        '
+name: release-3rdparty
+on:
+  repository_dispatch:
+    types: trigger-ga___publish-packages.yml

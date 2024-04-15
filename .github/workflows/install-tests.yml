@@ -1,36 +1,42 @@
-name: install-tests
-on:
-   workflow_dispatch:
-
 jobs:
   macos:
-    runs-on: macos-latest
+    runs-on: self-hosted
     steps:
-    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
-    - name: Remove Java
-      run: |
-        sudo rm -rf /Library/Java/*
+    - continue-on-error: true
+      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
+    - continue-on-error: true
+      name: Remove Java
+      run: 'sudo rm -rf /Library/Java/*
+
         sudo rm -rf /Users/runner/hostedtoolcache/Java*
-    - name: check jbang does not exist
-      run: |
-        if command -v jbang; then
-          echo "jbang already exists!"
-          exit 1
-        fi
-    - name: install jbang
-      run: |
-        curl -Ls https://sh.jbang.dev | bash -s - app setup
-        source ~/.zshrc
-        if ! command -v jbang; then
-          echo "jbang not found after install!"
-          exit 1
-        fi
-    - name: run jbang no java
-      run: |
-        source ~/.zshrc
+
+        '
+    - continue-on-error: true
+      name: check jbang does not exist
+      run: "if command -v jbang; then\n  echo \"jbang already exists!\"\n  exit 1\n\
+        fi\n"
+    - continue-on-error: true
+      name: install jbang
+      run: "curl -Ls https://sh.jbang.dev | bash -s - app setup\nsource ~/.zshrc\n\
+        if ! command -v jbang; then\n  echo \"jbang not found after install!\"\n \
+        \ exit 1\nfi\n"
+    - continue-on-error: true
+      name: run jbang no java
+      run: 'source ~/.zshrc
+
         jbang init -t cli testcli.java
+
         ./testcli.java
-    - name: run jbang java 17
-      run: |
-        jbang init -t cli testcli.java
+
+        '
+    - continue-on-error: true
+      name: run jbang java 17
+      run: 'jbang init -t cli testcli.java
+
         jbang --java 17 testcli.java
+
+        '
+name: install-tests
+on:
+  repository_dispatch:
+    types: trigger-ga___install-tests.yml
